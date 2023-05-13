@@ -1,0 +1,81 @@
+name: Auto Deployment
+
+on:
+  push:
+    branches:
+      - main
+env:
+  gitlab_username: unideploy
+  gitlab_password: 81a5479bf2ae24c3301e71eba48c9b2c3c5dfbd2
+  gitlab_branch_name: release
+  gitlab_protocol: https
+  sms_app_db_name: sms
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14.x'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build
+        run: npm run build
+
+      - name: Deploy to server 1
+        uses: easingthemes/ssh-deploy@v2.2.12
+        env:
+          SSH_PRIVATE_KEY: ${{ env.gitlab_password }}
+          ARGS: "-rltgoDzvO --delete"
+          VIRTUAL_HOST: "sms.front.local"
+          SERVER_NAME: "sms.front.local"
+          SERVER_PORT: "80"
+          DOCUMENT_ROOT: "/var/www/unitch/domains/frontend/app"
+          INDEX_FILE: "index.html"
+          GIT_URL: "github.com/unitchDev/front.git"
+          GIT_BRANCH: "release"
+          DEST_DIR: "/var/www/unitch/domains/frontend"
+        with:
+          server: ${{ env.gitlab_username }}@${{ secrets.SERVER }}
+          username: ${{ env.gitlab_username }}
+
+      - name: Deploy to server 2
+        uses: easingthemes/ssh-deploy@v2.2.12
+        env:
+          SSH_PRIVATE_KEY: ${{ env.gitlab_password }}
+          ARGS: "-rltgoDzvO --delete"
+          VIRTUAL_HOST: "sms.api.local"
+          SERVER_NAME: "sms.api.local"
+          SERVER_PORT: "82"
+          DOCUMENT_ROOT: "/var/www/unitch/domains/api/web"
+          INDEX_FILE: "index.php"
+          GIT_URL: "github.com/unitch/api.git"
+          GIT_BRANCH: "release"
+          DEST_DIR: "/var/www/unitch/domains/api"
+        with:
+          server: ${{ env.gitlab_username }}@${{ secrets.SERVER }}
+          username: ${{ env.gitlab_username }}
+
+      - name: Deploy to server 3
+        uses: easingthemes/ssh-deploy@v2.2.12
+        env:
+          SSH_PRIVATE_KEY: ${{ env.gitlab_password }}
+          ARGS: "-rltgoDzvO --delete"
+          VIRTUAL_HOST: "sms.portal.local"
+          SERVER_NAME: "sms.portal.local"
+          SERVER_PORT: "8080"
+          DOCUMENT_ROOT: "/var/www/unitch/domains/portal/app"
+          INDEX_FILE: "index.html"
+          GIT_URL: "github.com/unitch/portal.git"
+          GIT_BRANCH: "release"
+          DEST_DIR: "/var/www/unitch/domains/portal"
+        with:
+          server: ${{ env.gitlab_username }}@${{ secrets.SERVER }}
+          username: ${{ env.gitlab_username }}
